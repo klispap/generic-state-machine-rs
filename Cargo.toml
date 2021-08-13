@@ -1,0 +1,22 @@
+[package]
+name = "generic-state-machine"
+version = "0.1.0"
+authors = ["klispap <klis.pap@gmail.com>"]
+edition = "2018"
+license = "MIT"
+readme = "README.md"
+
+description = "A simple Rust library that allows to create generic or Moore or Mealy state machines that allows the use of custom transition functions"
+categories = ["algorithms"]
+keywords = [
+    "state machine", "fsm",
+]
+exclude = [
+    ".github",
+    "Cargo.toml.orig",
+    "cargo_vcs_info.json",
+]
+repository = "https://github.com/klispap/generic-state-machine-rs"
+
+[dependencies]
+derivative = "2.2.0"
