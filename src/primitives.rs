@@ -66,7 +66,7 @@ where
     ///   * [set_state()](StateMachine::set_state)
     ///  The above methods can be chained in a single command, like so:
     ///  ```rust
-    ///     use generic_state_machine::state_machine::StateMachine;
+    ///     use generic_state_machine::primitives::StateMachine;
     ///     
     ///     let mut fsm = StateMachine::<String, String>::new();
     ///     fsm.add_states(&mut vec![

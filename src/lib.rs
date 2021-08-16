@@ -1,6 +1,6 @@
 //! ## Summary
 //! A simple library that allows to create Moore or Mealy state machines
-//! It is designed around the [`StateMachine<S,E>`](state_machine::StateMachine) type and allows the use of
+//! It is designed around the [`StateMachine<S,E>`](primitives::StateMachine) type and allows the use of
 //! custom transition functions.
 //!
 //! ## Requirements:
@@ -32,7 +32,7 @@
 //!            +------------+
 //! ```
 //! ```rust
-//! use generic_state_machine::state_machine::StateMachine;
+//! use generic_state_machine::primitives::StateMachine;
 //!
 //! // Define a transition function. It can as general as we want!
 //! fn tf(_fsm: &mut StateMachine<i32, i32>, event: i32) -> i32 {
@@ -64,5 +64,5 @@
 //! assert_eq!(&3, fsm.execute(3));
 //!
 //! ```
-pub mod state_machine;
+pub mod primitives;
 mod tests;

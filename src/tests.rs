@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use crate::state_machine::StateMachine;
+    use crate::primitives::StateMachine;
     /// Test over the following state machine:
     ///            +---->[1]----+
     ///   Event: 1 |            | Event: 2
