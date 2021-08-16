@@ -1,17 +1,23 @@
 use derivative::*;
-use std::collections::{HashMap, VecDeque};
+use std::collections::HashMap;
 use std::fmt::Debug;
 use std::hash::Hash;
+use std::sync::Mutex;
 
-type TransitionFunction<S, E> = fn(&mut StateMachine<S, E>, E) -> S;
+pub type TransitionFunction<S, E> = fn(&StateMachine<S, E>, E) -> S;
 
-/// The state machine type that holds all context
+/// The primitive state machine type that holds all context
 ///  * List of available states
 ///  * Maps of input events per state. An event not in the list is ignored by default
 ///  * Maps of transition functions per input event
 /// It also holds the live status of the state machine:
 ///  * Queue with incoming input events to be processed
 ///  * Current state
+///
+/// **Important Note:**
+/// This type is used to implement the async (and later the sync) versions of the generic state machine
+/// You should not use this type for most of use cases.
+/// Use the async (or sync) implementations instead!
 #[derive(Debug)]
 pub struct StateMachine<S, E>
 where
@@ -19,8 +25,7 @@ where
     E: Hash + Eq + Debug,
 {
     states: Vec<S>,
-    current: S,
-    events: VecDeque<E>,
+    current: Mutex<S>,
     transitions: HashMap<S, StateMachineTransitions<S, E>>,
 }
 
@@ -83,20 +88,19 @@ where
     pub fn new() -> Self {
         StateMachine {
             states: vec![],
-            current: S::default(),
-            events: std::collections::VecDeque::new(),
+            current: Mutex::new(S::default()),
             transitions: std::collections::HashMap::new(),
         }
     }
 
     /// Get the current state
-    pub fn current_state(&self) -> &S {
-        &self.current
+    pub fn current_state(&self) -> S {
+        self.current.lock().unwrap().clone()
     }
 
     /// Force the current state to the state provided. Used to set the initial state
     pub fn set_state(&mut self, state: S) -> &mut Self {
-        self.current = state;
+        *self.current.lock().unwrap() = state;
         self
     }
 
@@ -112,7 +116,7 @@ where
         &mut self,
         current_state: S,
         event: E,
-        function: fn(&mut Self, E) -> S,
+        function: TransitionFunction<S, E>,
     ) -> &mut Self {
         if let Some(events) = self.transitions.get_mut(&current_state) {
             events.map.insert(event, function);
@@ -132,8 +136,8 @@ where
     /// Checks if a transition function is provided for the current state and for the incoming event
     /// It calls the function and sets the state to the output of the transition function.
     /// If no transition function is available, the incoming event is dropped.
-    pub fn execute(&mut self, event: E) -> &S {
-        if let Some(events) = self.transitions.get(self.current_state()) {
+    pub fn execute(&mut self, event: E) -> S {
+        if let Some(events) = self.transitions.get(&self.current_state()) {
             if let Some(&function) = events.map.get(&event) {
                 let res = function(self, event);
                 self.set_state(res);

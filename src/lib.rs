@@ -35,7 +35,7 @@
 //! use generic_state_machine::primitives::StateMachine;
 //!
 //! // Define a transition function. It can as general as we want!
-//! fn tf(_fsm: &mut StateMachine<i32, i32>, event: i32) -> i32 {
+//! fn tf(_fsm: &StateMachine<i32, i32>, event: i32) -> i32 {
 //! match event {
 //!     1 => 1,
 //!     2 => 2,
@@ -59,10 +59,11 @@
 //!
 //! println!("{:?}", fsm);
 //!
-//! assert_eq!(&1, fsm.execute(1));
-//! assert_eq!(&2, fsm.execute(2));
-//! assert_eq!(&3, fsm.execute(3));
+//! assert_eq!(1, fsm.execute(1));
+//! assert_eq!(2, fsm.execute(2));
+//! assert_eq!(3, fsm.execute(3));
 //!
 //! ```
 pub mod primitives;
+pub mod state_machine;
 mod tests;
