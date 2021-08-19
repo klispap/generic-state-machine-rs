@@ -21,7 +21,59 @@ custom transition functions.
 ## Implement Mealy state machine:
  * Define transition functions that calculate the next state and use that together with the input event E to produce any outputs
 
-### A Basic Example of a State Machine:
+### A Basic Example of a Asynchronous State Machine:
+
+```ignore
+           +------------+
+  Event: 1 |            | +----+
+           |            V |    | Event: 1
+     +->[false]       [true]<--+
+     |   | ^            |
+     +---+ |            | Event: 0
+ Event: 0  +------------+
+```
+
+```rust
+use state_machine::state_machine::AsyncStateMachine;
+
+async fn main() -> Result<()> {
+let mut fsm = AsyncStateMachine::<bool, usize>::new(5);
+    fsm.add_states(&mut vec![true, false])
+      .await
+      .add_transition(true, 0, |_fsm, _event| false)
+      .await
+      .add_transition(true, 1, |_fsm, _event| true)
+      .await
+      .add_transition(false, 0, |_fsm, _event| false)
+      .await
+      .add_transition(false, 1, |_fsm, _event| true)
+      .await
+      .set_state(false)
+      .await;
+
+    fsm.start().await.unwrap();
+
+    println!("State Machine under test: {:?}", fsm);
+
+    fsm.push_event(0).await.unwrap();
+    assert_eq!(fsm.current_state().await, false);
+
+    fsm.push_event(1).await.unwrap();
+    assert_eq!(fsm.current_state().await, true);
+
+    fsm.push_event(1).await.unwrap();
+    assert_eq!(fsm.current_state().await, true);
+
+    fsm.push_event(0).await.unwrap();
+    assert_eq!(fsm.current_state().await, false);
+
+    fsm.push_event(0).await.unwrap();
+    assert_eq!(fsm.current_state().await, false);
+}
+```
+
+### A Basic Example of a State Machine (using the primitive type):
+
 ```ignore
            +---->[1]----+
   Event: 1 |            | Event: 2
@@ -32,7 +84,7 @@ custom transition functions.
            +------------+
 ```
 ```rust
-    use state_machine::state_machine::StateMachine;
+    use state_machine::primitives::StateMachine;
 
     // Define a transition function. It can as general as we want!
     fn tf(_fsm: &mut StateMachine<i32, i32>, event: i32) -> i32 {
