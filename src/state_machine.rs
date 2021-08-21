@@ -62,7 +62,7 @@ where
 
     /// Get the current state
     pub async fn current_state(&self) -> S {
-        self.state_machine.lock().await.current_state()
+        self.state_machine.lock().await.current_state().unwrap()
     }
 
     /// Force the current state to the state provided. Used to set the initial state
@@ -108,6 +108,10 @@ async fn state_machine_task<S, E>(
             break;
         }
 
-        state_machine.lock().await.execute(next_event.unwrap());
+        state_machine
+            .lock()
+            .await
+            .execute(next_event.unwrap())
+            .unwrap();
     }
 }

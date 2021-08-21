@@ -14,7 +14,7 @@
 //!    where input E is the trigger event and the return value is the new state.
 //!  * Output generation is left to the user to allow the implementation to be as generic as possible.
 //!    You can print or call exernal functions to produce the desired output
-//!  
+//!
 //! ## Implement Moore state machine:
 //!  * Define transition functions that calculate the next state and use that to produce any outputs
 //!
@@ -33,6 +33,7 @@
 //! ```
 //!
 //! ```rust
+//! #[cfg(features = "async")]
 //! #[tokio::test]
 //! async fn state_machine_example() -> Result<()> {
 //!     let mut fsm = AsyncStateMachine::<bool, usize>::new(5);
@@ -104,15 +105,17 @@
 //!
 //! fsm.add_transition(2, 3, tf);
 //! fsm.add_transition(3, 1, tf);
-//! fsm.set_state(1);
+//! fsm.initial_state(1);
 //!
 //! println!("{:?}", fsm);
 //!
-//! assert_eq!(1, fsm.execute(1));
-//! assert_eq!(2, fsm.execute(2));
-//! assert_eq!(3, fsm.execute(3));
+//! assert_eq!(2, fsm.execute(2).unwrap());
+//! assert_eq!(3, fsm.execute(3).unwrap());
+//! assert_eq!(1, fsm.execute(1).unwrap());
 //!
 //! ```
+mod error;
 pub mod primitives;
+#[cfg(feature = "async")]
 pub mod state_machine;
 mod tests;
