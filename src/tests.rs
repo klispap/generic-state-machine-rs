@@ -20,17 +20,18 @@ mod primitive_tests {
     #[test]
     fn primitive_test_i32() {
         let mut fsm = StateMachine::<i32, i32>::new();
-        fsm.add_states(&mut vec![1, 2, 3])
+        fsm.add_states(&[1, 2, 3])
             .add_transition(1, 2, |_fsm, _event| 2)
             .add_transition(2, 3, tf)
             .add_transition(3, 1, tf)
-            .set_state(1);
+            .initial_state(1)
+            .unwrap();
 
-        println!("{:?}", fsm);
+        println!("fsm: {:?}", fsm);
 
-        assert_eq!(1, fsm.execute(1));
-        assert_eq!(2, fsm.execute(2));
-        assert_eq!(3, fsm.execute(3));
+        assert_eq!(2, fsm.execute(2).unwrap());
+        assert_eq!(3, fsm.execute(3).unwrap());
+        assert_eq!(1, fsm.execute(1).unwrap());
     }
 
     #[test]
@@ -48,7 +49,7 @@ mod primitive_tests {
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test, feature = "async"))]
 mod state_machine_tests {
     use crate::state_machine::AsyncStateMachine;
 

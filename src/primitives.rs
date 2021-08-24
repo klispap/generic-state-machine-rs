@@ -1,3 +1,4 @@
+use crate::error::{ContexError, Error, Result};
 use derivative::*;
 use std::collections::HashMap;
 use std::fmt::Debug;
@@ -21,20 +22,20 @@ pub type TransitionFunction<S, E> = fn(&StateMachine<S, E>, E) -> S;
 #[derive(Debug)]
 pub struct StateMachine<S, E>
 where
-    S: Default + Clone + std::hash::Hash + Eq + Debug,
+    S: Clone + std::hash::Hash + Eq + Debug,
     E: Hash + Eq + Debug,
 {
     states: Vec<S>,
-    current: Mutex<S>,
-    transitions: HashMap<S, StateMachineTransitions<S, E>>,
+    current: Mutex<Option<S>>,
+    pub transitions: HashMap<S, StateMachineTransitions<S, E>>,
 }
 
 /// Helper structure to bypass Debug trait limitations on function items
 #[derive(Derivative)]
 #[derivative(Debug)]
-struct StateMachineTransitions<S, E>
+pub struct StateMachineTransitions<S, E>
 where
-    S: Default + Clone + Hash + Eq + Debug,
+    S: Clone + Hash + Eq + Debug,
     E: Hash + Eq + Debug,
 {
     #[derivative(Debug(format_with = "my_fmt_fn"))]
@@ -45,13 +46,13 @@ where
 fn my_fmt_fn<K: std::fmt::Debug, V>(
     t: &HashMap<K, V>,
     f: &mut std::fmt::Formatter,
-) -> Result<(), std::fmt::Error> {
+) -> std::result::Result<(), std::fmt::Error> {
     f.debug_list().entries(t.keys()).finish()
 }
 
 impl<S, E> Default for StateMachine<S, E>
 where
-    S: Default + Clone + Hash + Eq + Debug,
+    S: Clone + Hash + Eq + Debug,
     E: Hash + Eq + Debug,
 {
     fn default() -> Self {
@@ -61,7 +62,7 @@ where
 
 impl<S, E> StateMachine<S, E>
 where
-    S: Default + Clone + Hash + Eq + Debug,
+    S: Clone + Hash + Eq + Debug,
     E: Hash + Eq + Debug,
 {
     /// Create a new empty state machine
@@ -72,7 +73,7 @@ where
     ///  The above methods can be chained in a single command, like so:
     ///  ```rust
     ///     use generic_state_machine::primitives::StateMachine;
-    ///     
+    ///
     ///     let mut fsm = StateMachine::<String, String>::new();
     ///     fsm.add_states(&mut vec![
     ///         "alpha".to_string(),
@@ -82,31 +83,50 @@ where
     ///         .add_transition("alpha".to_string(), "beta".to_string(), |_, _| {
     ///             "beta".to_string()
     ///         })
-    ///         .set_state("alpha".to_string());
+    ///         .initial_state("alpha".to_string());
     ///
     ///     println!("{:?}", fsm);
     pub fn new() -> Self {
         StateMachine {
             states: vec![],
-            current: Mutex::new(S::default()),
+            current: Mutex::new(None),
             transitions: std::collections::HashMap::new(),
         }
     }
 
     /// Get the current state
-    pub fn current_state(&self) -> S {
-        self.current.lock().unwrap().clone()
+    pub fn current_state(&self) -> Result<S> {
+        match &self.current.lock().unwrap().clone() {
+            Some(s) => Ok(s.clone()),
+            None => Err(Error::NoCurrentState),
+        }
+    }
+
+    pub fn initial_state(&mut self, state: S) -> Result<&mut Self> {
+        if self.current.lock()?.is_some() {
+            Err(Error::InitialStateDoubleSet)
+        } else {
+            *self.current.lock().unwrap() = Some(state);
+            Ok(self)
+        }
     }
 
     /// Force the current state to the state provided. Used to set the initial state
-    pub fn set_state(&mut self, state: S) -> &mut Self {
-        *self.current.lock().unwrap() = state;
+    pub(crate) fn set_state(&mut self, state: S) -> &mut Self {
+        // let mut test = Some(1);
+
+        // test = match test {
+        //     Some(_) => unreachable!(),
+        //     None => Some(2),
+        // };
+
+        *self.current.lock().unwrap() = Some(state);
         self
     }
 
     /// Add the provided states to the list of available states
-    pub fn add_states(&mut self, states: &mut Vec<S>) -> &mut Self {
-        self.states.append(states);
+    pub fn add_states(&mut self, states: &[S]) -> &mut Self {
+        self.states.extend_from_slice(states);
         self
     }
 
@@ -114,19 +134,19 @@ where
     /// is in the provided state and receives the provided input event
     pub fn add_transition(
         &mut self,
-        current_state: S,
+        state: S,
         event: E,
         function: TransitionFunction<S, E>,
     ) -> &mut Self {
-        if let Some(events) = self.transitions.get_mut(&current_state) {
-            events.map.insert(event, function);
+        if let Some(transitions) = self.transitions.get_mut(&state) {
+            transitions.map.insert(event, function);
         } else {
-            self.transitions.insert(current_state, {
-                let mut map = StateMachineTransitions {
+            self.transitions.insert(state, {
+                let mut transitions = StateMachineTransitions {
                     map: std::collections::HashMap::new(),
                 };
-                map.map.insert(event, function);
-                map
+                transitions.map.insert(event, function);
+                transitions
             });
         }
         self
@@ -136,13 +156,19 @@ where
     /// Checks if a transition function is provided for the current state and for the incoming event
     /// It calls the function and sets the state to the output of the transition function.
     /// If no transition function is available, the incoming event is dropped.
-    pub fn execute(&mut self, event: E) -> S {
-        if let Some(events) = self.transitions.get(&self.current_state()) {
+    pub fn execute(&mut self, event: E) -> Result<S> {
+        if let Some(events) = self.transitions.get(&self.current_state()?) {
             if let Some(&function) = events.map.get(&event) {
                 let res = function(self, event);
                 self.set_state(res);
+            } else {
+                return Err(ContexError::EventNotMachingState(self.current_state()?, event).into());
             }
+        } else {
+            unreachable!();
         }
-        self.current_state()
+
+        let current_state = self.current_state()?;
+        Ok(current_state)
     }
 }
