@@ -1,3 +1,5 @@
+[![Coverage Status](https://coveralls.io/repos/github/klispap/generic-state-machine-rs/badge.svg?branch=master)](https://coveralls.io/github/klispap/generic-state-machine-rs?branch=master)
+
 ## Summary
 A simple library that allows to create Moore or Mealy state machines
 It is designed around the [`StateMachine<S,E>`](state_machine::StateMachine) type and allows the use of
