@@ -1,98 +1,130 @@
 #[cfg(test)]
-mod primitive_tests {
-    use crate::primitives::StateMachine;
-    /// Test over the following state machine:
-    ///            +---->[1]----+
-    ///   Event: 1 |            | Event: 2
-    ///            |            V
-    ///           [3]          [2]
-    ///            ^            |
-    ///            |            | Event: 3
-    ///            +------------+
-    fn tf(_fsm: &StateMachine<i32, i32>, event: i32) -> i32 {
-        match event {
-            1 => 1,
-            2 => 2,
-            3 => 3,
-            _ => panic!(), // Invalid transition
-        }
-    }
-    #[test]
-    fn primitive_test_i32() {
-        let mut fsm = StateMachine::<i32, i32>::new();
-        fsm.add_states(&[1, 2, 3])
-            .add_transition(1, 2, |_fsm, _event| 2)
-            .add_transition(2, 3, tf)
-            .add_transition(3, 1, tf)
-            .initial_state(1)
-            .unwrap();
-
-        println!("fsm: {:?}", fsm);
-
-        assert_eq!(2, fsm.execute(2).unwrap());
-        assert_eq!(3, fsm.execute(3).unwrap());
-        assert_eq!(1, fsm.execute(1).unwrap());
-    }
+mod static_sanity_test {
+    use crate::error::Result;
+    use crate::state::State;
+    use crate::event::Event;
+    use crate::static_state_machine::StateMachine;
+    use crate::static_state_machine::Transition;
+    
+    use std::sync::Arc;
 
     #[test]
-    fn primitive_test_string() {
-        let mut fsm = StateMachine::<String, String>::new();
-        fsm.add_states(&mut vec![
-            "alpha".to_string(),
-            "beta".to_string(),
-            "gamma".to_string(),
-        ]);
-        fsm.add_transition("alpha".to_string(), "beta".to_string(), |_, _| {
-            "beta".to_string()
+    fn fsm_sanity_test() -> Result<()> {
+        let state1 = Arc::new(State::new(1));
+        let state2 = Arc::new(State::new(2));
+        let state3 = Arc::new(State::new(3));
+
+        let event_goto_1 = Arc::new(Event::new(1));
+        let event_goto_2 = Arc::new(Event::new(2));
+        let event_goto_3 = Arc::new(Event::new(3));
+
+        let s = state2.clone();
+        let transition12 = Transition::new(*state1, *event_goto_2, move |c, e| {
+            println!("transition: curr: {}, event: {}", c.content(), e.content());
+            Some(*s.clone())
         });
-        println!("{:?}", fsm);
+
+        let s = state3.clone();
+        let transition23 = Transition::new(*state2, *event_goto_3, move |c, e| {
+            println!("transition: curr: {}, event: {}", c.content(), e.content());
+            Some(*s.clone())
+        });
+
+        let s = state1.clone();
+        let transition31 = Transition::new(*state3, *event_goto_1, move |c, e| {
+            println!("transition: curr: {}, event: {}", c.content(), e.content());
+            Some(*s.clone())
+        });
+
+        let s = state3.clone();
+        let transition13 = Transition::new(*state1, *event_goto_3, move |c, e| {
+            println!("transition: curr: {}, event: {}", c.content(), e.content());
+            Some(*s.clone())
+        });
+
+        let mut state_machine = StateMachine::new(*state1)
+            .insert_transition(transition12)
+            .insert_transition(transition13)
+            .insert_transition(transition23)
+            .insert_transition(transition31);
+
+        let state = state_machine.event(&event_goto_2)?;
+        assert_eq!(state, Some(&*state2));
+
+        let state = state_machine.event(&event_goto_3)?;
+        assert_eq!(state, Some(&*state3));
+
+        let state = state_machine.event(&event_goto_1)?;
+        assert_eq!(state, Some(&*state1));
+
+        let state = state_machine.event(&event_goto_3)?;
+        assert_eq!(state, Some(&*state3));
+
+        Ok(())
     }
 }
 
-#[cfg(all(test, feature = "async"))]
-mod state_machine_tests {
-    use crate::state_machine::AsyncStateMachine;
+mod dynamic_sanity_test {
+    use crate::error::Result;
+    use crate::state::State;
+    use crate::event::Event;
+    use crate::dynamic_state_machine::DynamicStateMachine as StateMachine;
+    use crate::dynamic_state_machine::DynamicTransition as Transition;
+    
+    use std::sync::Arc;
 
-    #[tokio::test]
-    async fn sanity_test() {
-        let mut fsm = AsyncStateMachine::<bool, usize>::new(5);
-        fsm.add_states(&mut vec![true, false])
-            .await
-            .add_transition(true, 0, |_fsm, _event| false)
-            .await
-            .add_transition(true, 1, |_fsm, _event| true)
-            .await
-            .add_transition(false, 0, |_fsm, _event| false)
-            .await
-            .add_transition(false, 1, |_fsm, _event| true)
-            .await
-            .set_state(false)
-            .await;
+    #[test]
+    fn dynamic_fsm_sanity_test() -> Result<()> {
+        let state1 = Arc::new(State::new(1));
+        let state2 = Arc::new(State::new(2));
+        let state3 = Arc::new(State::new(3));
 
-        println!("State Machine under test: {:?}", fsm);
+        let event_goto_1 = Arc::new(Event::new(1));
+        let event_goto_2 = Arc::new(Event::new(2));
+        let event_goto_3 = Arc::new(Event::new(3));
 
-        fsm.start().await.unwrap();
+        let s = state2.clone();
+        let transition12 = Transition::new(*state1, *event_goto_2, move |c, e| {
+            println!("transition: curr: {}, event: {}", c.content(), e.content());
+            Some(*s.clone())
+        });
 
-        println!("State Machine under test: {:?}", fsm);
+        let s = state3.clone();
+        let transition23 = Transition::new(*state2, *event_goto_3, move |c, e| {
+            println!("transition: curr: {}, event: {}", c.content(), e.content());
+            Some(*s.clone())
+        });
 
-        fsm.push_event(0).await.unwrap();
-        tokio::time::sleep(std::time::Duration::from_millis(1)).await;
-        assert_eq!(fsm.current_state().await, false);
+        let s = state1.clone();
+        let transition31 = Transition::new(*state3, *event_goto_1, move |c, e| {
+            println!("transition: curr: {}, event: {}", c.content(), e.content());
+            Some(*s.clone())
+        });
 
-        fsm.push_event(1).await.unwrap();
-        tokio::time::sleep(std::time::Duration::from_millis(1)).await;
-        assert_eq!(fsm.current_state().await, true);
+        let s = state3.clone();
+        let transition13 = Transition::new(*state1, *event_goto_3, move |c, e| {
+            println!("transition: curr: {}, event: {}", c.content(), e.content());
+            Some(*s.clone())
+        });
 
-        fsm.push_event(1).await.unwrap();
-        tokio::time::sleep(std::time::Duration::from_millis(1)).await;
-        assert_eq!(fsm.current_state().await, true);
+        let mut state_machine = StateMachine::new(*state1)
+            .insert_transition(transition12)
+            .insert_transition(transition13)
+            .insert_transition(transition23)
+            .insert_transition(transition31);
 
-        fsm.push_event(0).await.unwrap();
-        tokio::time::sleep(std::time::Duration::from_millis(1)).await;
-        assert_eq!(fsm.current_state().await, false);
+        let state = state_machine.event(&event_goto_2)?;
+        assert_eq!(state, Some(&*state2));
 
-        fsm.push_event(0).await.unwrap();
-        tokio::time::sleep(std::time::Duration::from_millis(1)).await;
-        assert_eq!(fsm.current_state().await, false);
+        let state = state_machine.event(&event_goto_3)?;
+        assert_eq!(state, Some(&*state3));
+
+        let state = state_machine.event(&event_goto_1)?;
+        assert_eq!(state, Some(&*state1));
+
+        let state = state_machine.event(&event_goto_3)?;
+        assert_eq!(state, Some(&*state3));
+
+        Ok(())
     }
 }

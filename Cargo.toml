@@ -19,10 +19,4 @@ exclude = [
 repository = "https://github.com/klispap/generic-state-machine-rs"
 
 [dependencies]
-derivative = "2.2.0"
 thiserror = "1.0.26"
-anyhow = { version = "1.0.13", optional = true }
-tokio = { version = "1", features = ["rt", "sync", "time", "macros"], optional = true}
-
-[features]
-async = ["tokio", "anyhow"]
