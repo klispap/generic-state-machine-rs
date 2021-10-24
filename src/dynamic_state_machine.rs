@@ -2,8 +2,8 @@ use std::collections::HashMap;
 use std::hash::Hash;
 
 use crate::error::{Result, StateMachineError};
-use crate::state::State;
 use crate::event::Event;
+use crate::state::State;
 
 pub type TransitionCallback<S, E> = dyn Fn(&State<S>, &Event<E>) -> Option<State<S>>;
 pub type BoxTransitionCallback<S, E> = Box<TransitionCallback<S, E>>;
@@ -15,12 +15,9 @@ pub struct DynamicTransition<S, E> {
 }
 
 impl<S, E> DynamicTransition<S, E> {
-    pub fn new<C>(
-        curr_state: State<S>,
-        event: Event<E>,
-        callback: C,
-    ) -> Self
-        where C: Fn(&State<S>, &Event<E>) -> Option<State<S>> + 'static
+    pub fn new<C>(curr_state: State<S>, event: Event<E>, callback: C) -> Self
+    where
+        C: Fn(&State<S>, &Event<E>) -> Option<State<S>> + 'static,
     {
         DynamicTransition {
             curr_state,

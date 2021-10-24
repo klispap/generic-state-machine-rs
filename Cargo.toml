@@ -2,7 +2,7 @@
 name = "generic-state-machine"
 version = "0.1.0"
 authors = ["klispap <klis.pap@gmail.com>"]
-edition = "2018"
+edition = "2021"
 license = "MIT"
 readme = "README.md"
 

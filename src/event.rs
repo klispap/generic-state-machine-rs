@@ -1,4 +1,4 @@
-use std::sync::atomic::{AtomicUsize,Ordering};
+use std::sync::atomic::{AtomicUsize, Ordering};
 
 static EVENT_COUNTER: AtomicUsize = AtomicUsize::new(0);
 

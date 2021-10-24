@@ -1,5 +1,5 @@
 // use uuid::Uuid;
-use std::sync::atomic::{AtomicUsize,Ordering};
+use std::sync::atomic::{AtomicUsize, Ordering};
 
 pub trait Content<C> {
     fn content(&self) -> &C;
