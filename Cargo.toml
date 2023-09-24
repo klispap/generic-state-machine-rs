@@ -1,7 +1,7 @@
 [package]
 name = "generic-state-machine"
 version = "0.1.0"
-authors = ["klispap <klis.pap@gmail.com>"]
+authors = ["CY Rust Community <cy.rust.community@gmail.com>"]
 edition = "2018"
 license = "MIT"
 readme = "README.md"
@@ -9,7 +9,7 @@ readme = "README.md"
 description = "A simple Rust library that allows to create generic or Moore or Mealy state machines that allows the use of custom transition functions"
 categories = ["algorithms"]
 keywords = [
-    "state machine", "fsm",
+    "state", "machine", "fsm", "mealy", "moore"
 ]
 exclude = [
     ".github",
